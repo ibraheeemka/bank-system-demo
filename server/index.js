@@ -11,7 +11,7 @@ const app = express();
 // CORS configuration
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://[your-github-username].github.io'] // Replace this with your actual GitHub Pages URL
+    ? ['https://ibragimkamalov.github.io']  // Your GitHub Pages domain
     : ['http://localhost:8080', 'http://localhost:5173'],
   methods: ['GET', 'POST'],
   credentials: true,

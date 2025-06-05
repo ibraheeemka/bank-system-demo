@@ -67,7 +67,7 @@ const generateTransactionId = () => {
 
 // API URL configuration
 const API_URL = process.env.NODE_ENV === 'production'
-  ? 'https://uni-bank-backend.onrender.com'  // Replace with your actual Render URL
+  ? 'https://bank-system-demo.onrender.com'  // Your actual Render URL
   : 'http://localhost:3001';
 
 // Real email sending function
