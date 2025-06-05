@@ -5,9 +5,7 @@ A modern banking system demo application built with React, TypeScript, and Expre
 ## 🌐 Live Demo
 
 Try out the live application:
-- Frontend: https://ibragimkamalov.github.io/banking-system-demo/
-- Backend API: https://bank-system-demo.onrender.com
-
+https://bank-system-demo.onrender.com
 ## ✨ Features
 
 - User account creation and management
@@ -19,7 +17,7 @@ Try out the live application:
 
 ## 🚀 Quick Start
 
-1. Visit the [live demo](https://ibragimkamalov.github.io/banking-system-demo/)
+1. Visit the https://bank-system-demo.onrender.com
 2. Create a new account or use these demo credentials:
    - Account ID: `DEMO123456`
    - Password: `demo123`
@@ -68,9 +66,6 @@ cd server && npm install && cd ..
 npm run dev:all
 ```
 
-The application will be available at:
-- Frontend: http://localhost:5173
-- Backend: http://localhost:3001
 
 ## 📝 API Documentation
 
