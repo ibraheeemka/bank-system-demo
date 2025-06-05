@@ -2,6 +2,7 @@ const express = require('express');
 const nodemailer = require('nodemailer');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path');
 
 // Load environment variables
 dotenv.config();
@@ -10,9 +11,7 @@ const app = express();
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' 
-    ? ['https://ibragimkamalov.github.io']  // Your GitHub Pages domain
-    : ['http://localhost:8080', 'http://localhost:5173'],
+  origin: '*',  // Allow all origins in demo
   methods: ['GET', 'POST'],
   credentials: true,
 };
@@ -21,12 +20,11 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Health check endpoint
-app.get('/', (req, res) => {
-  res.json({ status: 'ok', message: 'UNI Bank API is running' });
-});
+// Serve static files from the dist directory
+app.use(express.static(path.join(__dirname, '../dist')));
 
-app.get('/health', (req, res) => {
+// API Routes
+app.get('/api/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date().toISOString() });
 });
 
@@ -76,6 +74,11 @@ app.post('/api/send-account-id', async (req, res) => {
     console.error('Error sending email:', error);
     res.status(500).json({ success: false, message: 'Failed to send email', error: error.message });
   }
+});
+
+// Serve React app for all other routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
 const PORT = process.env.PORT || 3001;
