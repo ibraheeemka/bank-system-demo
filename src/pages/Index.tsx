@@ -3,11 +3,17 @@ import { useState, useEffect } from "react";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { BankingDashboard } from "@/components/banking/BankingDashboard";
 import { CreateAccountForm } from "@/components/auth/CreateAccountForm";
+import { AppPasswordForm } from "@/components/auth/AppPasswordForm";
 import { useBankingStore } from "@/stores/bankingStore";
 
 const Index = () => {
-  const { currentUser, accounts, isLoading } = useBankingStore();
+  const { currentUser, accounts, isLoading, isAppUnlocked } = useBankingStore();
   const [showCreateAccount, setShowCreateAccount] = useState(false);
+
+  // Show app password form if app is not unlocked
+  if (!isAppUnlocked) {
+    return <AppPasswordForm />;
+  }
 
   if (isLoading) {
     return (

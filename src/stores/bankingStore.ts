@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
@@ -17,7 +16,7 @@ export interface Account {
   id: string;
   ownerName: string;
   email: string;
-  password: string; // In a real app, this would be hashed
+  password: string; // Account password
   balance: number;
   transactions: Transaction[];
   createdAt: Date;
@@ -31,7 +30,12 @@ interface BankingState {
   accounts: Account[];
   currentUser: Account | null;
   isLoading: boolean;
-  createAccount: (ownerName: string, email: string, password: string, accountType: 'checking' | 'savings') => string;
+  appPassword: string | null; // App-level password
+  isAppUnlocked: boolean;
+  setAppPassword: (password: string) => void;
+  verifyAppPassword: (password: string) => boolean;
+  lockApp: () => void;
+  createAccount: (ownerName: string, email: string, password: string, accountType: 'checking' | 'savings') => Promise<string>;
   login: (accountId: string, password: string) => boolean;
   logout: () => void;
   deposit: (amount: number, description: string, category?: string) => void;
@@ -41,6 +45,7 @@ interface BankingState {
   searchAccountsByName: (name: string) => Account[];
   formatCurrency: (amount: number) => string;
   unlockAccount: (accountId: string) => void;
+  sendAccountIdEmail: (email: string, accountId: string) => Promise<boolean>;
 }
 
 const generateAccountId = (): string => {
@@ -51,21 +56,61 @@ const generateTransactionId = (): string => {
   return 'TXN' + Math.random().toString(36).substr(2, 12);
 };
 
+// Simulate email sending (in real app, this would call a backend API)
+const simulateEmailSending = async (email: string, accountId: string): Promise<boolean> => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      console.log(`📧 Email sent to ${email}: Your ModernBank Account ID is ${accountId}`);
+      // In a real app, you would integrate with an email service like SendGrid, Mailgun, etc.
+      resolve(true);
+    }, 1000);
+  });
+};
+
 export const useBankingStore = create<BankingState>()(
   persist(
     (set, get) => ({
       accounts: [],
       currentUser: null,
       isLoading: false,
+      appPassword: null,
+      isAppUnlocked: false,
 
-      createAccount: (ownerName: string, email: string, password: string, accountType: 'checking' | 'savings') => {
+      setAppPassword: (password: string) => {
+        set({ appPassword: password, isAppUnlocked: true });
+      },
+
+      verifyAppPassword: (password: string) => {
+        const { appPassword } = get();
+        if (appPassword === password) {
+          set({ isAppUnlocked: true });
+          return true;
+        }
+        return false;
+      },
+
+      lockApp: () => {
+        set({ isAppUnlocked: false, currentUser: null });
+      },
+
+      sendAccountIdEmail: async (email: string, accountId: string) => {
+        try {
+          const success = await simulateEmailSending(email, accountId);
+          return success;
+        } catch (error) {
+          console.error('Failed to send email:', error);
+          return false;
+        }
+      },
+
+      createAccount: async (ownerName: string, email: string, password: string, accountType: 'checking' | 'savings') => {
         const accountId = generateAccountId();
         const newAccount: Account = {
           id: accountId,
           ownerName,
           email,
-          password, // In production, hash this!
-          balance: accountType === 'savings' ? 100 : 0, // Welcome bonus for savings
+          password,
+          balance: accountType === 'savings' ? 100 : 0,
           transactions: [],
           createdAt: new Date(),
           accountType,
@@ -75,6 +120,9 @@ export const useBankingStore = create<BankingState>()(
         set((state) => ({
           accounts: [...state.accounts, newAccount],
         }));
+
+        // Send account ID to email
+        await get().sendAccountIdEmail(email, accountId);
 
         return accountId;
       },
@@ -91,13 +139,11 @@ export const useBankingStore = create<BankingState>()(
           if (timeDiff < 15 * 60 * 1000) { // 15 minutes lockout
             return false;
           } else {
-            // Unlock account after 15 minutes
             get().unlockAccount(accountId);
           }
         }
         
         if (account.password === password) {
-          // Reset failed attempts on successful login
           set((state) => ({
             accounts: state.accounts.map(acc =>
               acc.id === accountId
@@ -108,7 +154,6 @@ export const useBankingStore = create<BankingState>()(
           }));
           return true;
         } else {
-          // Increment failed attempts
           const failedAttempts = (account.failedLoginAttempts || 0) + 1;
           const shouldLock = failedAttempts >= 3;
           

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +24,7 @@ export const CreateAccountForm = ({ onBack }: CreateAccountFormProps) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [accountCreated, setAccountCreated] = useState(false);
   
   const createAccount = useBankingStore((state) => state.createAccount);
   const { toast } = useToast();
@@ -97,24 +97,84 @@ export const CreateAccountForm = ({ onBack }: CreateAccountFormProps) => {
 
     setIsLoading(true);
     
-    // Simulate account creation process
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const accountId = createAccount(
-      formData.ownerName, 
-      formData.email, 
-      formData.password, 
-      formData.accountType as "checking" | "savings"
-    );
-    
-    toast({
-      title: "Account Created Successfully! 🎉",
-      description: `Your account ID is: ${accountId}. Please save this for login.`,
-    });
+    try {
+      // Create account and send email
+      const accountId = await createAccount(
+        formData.ownerName, 
+        formData.email, 
+        formData.password, 
+        formData.accountType as "checking" | "savings"
+      );
+      
+      setAccountCreated(true);
+      
+      toast({
+        title: "Account Created Successfully! 🎉",
+        description: `Check your email for your Account ID. We've sent it to ${formData.email}`,
+      });
+      
+    } catch (error) {
+      toast({
+        title: "Account Creation Failed",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    }
     
     setIsLoading(false);
-    onBack();
   };
+
+  if (accountCreated) {
+    return (
+      <div className="relative overflow-hidden">
+        <Card className="relative backdrop-blur-sm bg-white/90 border-0 shadow-2xl animate-fade-in">
+          <CardHeader className="text-center space-y-4">
+            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center animate-scale-in">
+              <CheckCircle className="h-8 w-8 text-white" />
+            </div>
+            <CardTitle className="text-2xl bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+              Account Created! 🎉
+            </CardTitle>
+            <CardDescription className="text-base">
+              Your ModernBank account has been successfully created
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center space-y-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <Mail className="h-12 w-12 text-blue-600 mx-auto mb-3" />
+              <h3 className="font-semibold text-blue-900 mb-2">Check Your Email</h3>
+              <p className="text-blue-700 text-sm">
+                We've sent your Account ID to <strong>{formData.email}</strong>
+              </p>
+              <p className="text-blue-600 text-xs mt-2">
+                You'll need this ID to sign in to your account
+              </p>
+            </div>
+            
+            <div className="space-y-3">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-green-800 text-sm">
+                  <strong>Account Type:</strong> {formData.accountType === 'savings' ? 'Savings' : 'Checking'}
+                </p>
+                {formData.accountType === 'savings' && (
+                  <p className="text-green-700 text-xs mt-1">
+                    🎁 Welcome bonus: $100 added to your account!
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            <Button 
+              onClick={onBack}
+              className="w-full h-12 bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700"
+            >
+              Go to Sign In
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="relative overflow-hidden">
@@ -159,12 +219,13 @@ export const CreateAccountForm = ({ onBack }: CreateAccountFormProps) => {
               <Input
                 id="email"
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Enter your email (we'll send your Account ID here)"
                 value={formData.email}
                 onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
                 className="h-12 transition-all duration-200 focus:ring-2 focus:ring-green-500"
                 disabled={isLoading}
               />
+              <p className="text-xs text-gray-500">📧 Your Account ID will be sent to this email</p>
             </div>
 
             <div className="space-y-2">
