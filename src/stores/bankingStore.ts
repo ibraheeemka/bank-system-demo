@@ -10,35 +10,45 @@ export interface Transaction {
   timestamp: Date;
   fromAccount?: string;
   toAccount?: string;
+  category?: string;
 }
 
 export interface Account {
   id: string;
   ownerName: string;
+  email: string;
+  password: string; // In a real app, this would be hashed
   balance: number;
   transactions: Transaction[];
   createdAt: Date;
+  accountType: 'checking' | 'savings';
+  isLocked?: boolean;
+  failedLoginAttempts?: number;
+  lastLoginAttempt?: Date;
 }
 
 interface BankingState {
   accounts: Account[];
   currentUser: Account | null;
   isLoading: boolean;
-  createAccount: (ownerName: string) => string;
-  login: (accountId: string) => boolean;
+  createAccount: (ownerName: string, email: string, password: string, accountType: 'checking' | 'savings') => string;
+  login: (accountId: string, password: string) => boolean;
   logout: () => void;
-  deposit: (amount: number, description: string) => void;
-  withdraw: (amount: number, description: string) => boolean;
-  transfer: (toAccountId: string, amount: number, description: string) => boolean;
+  deposit: (amount: number, description: string, category?: string) => void;
+  withdraw: (amount: number, description: string, category?: string) => boolean;
+  transfer: (toAccountId: string, amount: number, description: string, category?: string) => boolean;
   getAccount: (accountId: string) => Account | undefined;
+  searchAccountsByName: (name: string) => Account[];
+  formatCurrency: (amount: number) => string;
+  unlockAccount: (accountId: string) => void;
 }
 
 const generateAccountId = (): string => {
-  return Math.random().toString(36).substr(2, 9).toUpperCase();
+  return 'ACC' + Math.random().toString(36).substr(2, 9).toUpperCase();
 };
 
 const generateTransactionId = (): string => {
-  return Math.random().toString(36).substr(2, 12);
+  return 'TXN' + Math.random().toString(36).substr(2, 12);
 };
 
 export const useBankingStore = create<BankingState>()(
@@ -48,14 +58,18 @@ export const useBankingStore = create<BankingState>()(
       currentUser: null,
       isLoading: false,
 
-      createAccount: (ownerName: string) => {
+      createAccount: (ownerName: string, email: string, password: string, accountType: 'checking' | 'savings') => {
         const accountId = generateAccountId();
         const newAccount: Account = {
           id: accountId,
           ownerName,
-          balance: 0,
+          email,
+          password, // In production, hash this!
+          balance: accountType === 'savings' ? 100 : 0, // Welcome bonus for savings
           transactions: [],
           createdAt: new Date(),
+          accountType,
+          failedLoginAttempts: 0,
         };
 
         set((state) => ({
@@ -65,20 +79,60 @@ export const useBankingStore = create<BankingState>()(
         return accountId;
       },
 
-      login: (accountId: string) => {
+      login: (accountId: string, password: string) => {
         const account = get().accounts.find(acc => acc.id === accountId);
-        if (account) {
-          set({ currentUser: account });
-          return true;
+        
+        if (!account) return false;
+        
+        // Check if account is locked
+        if (account.isLocked) {
+          const lockTime = account.lastLoginAttempt ? new Date(account.lastLoginAttempt) : new Date();
+          const timeDiff = Date.now() - lockTime.getTime();
+          if (timeDiff < 15 * 60 * 1000) { // 15 minutes lockout
+            return false;
+          } else {
+            // Unlock account after 15 minutes
+            get().unlockAccount(accountId);
+          }
         }
-        return false;
+        
+        if (account.password === password) {
+          // Reset failed attempts on successful login
+          set((state) => ({
+            accounts: state.accounts.map(acc =>
+              acc.id === accountId
+                ? { ...acc, failedLoginAttempts: 0, isLocked: false }
+                : acc
+            ),
+            currentUser: { ...account, failedLoginAttempts: 0, isLocked: false },
+          }));
+          return true;
+        } else {
+          // Increment failed attempts
+          const failedAttempts = (account.failedLoginAttempts || 0) + 1;
+          const shouldLock = failedAttempts >= 3;
+          
+          set((state) => ({
+            accounts: state.accounts.map(acc =>
+              acc.id === accountId
+                ? {
+                    ...acc,
+                    failedLoginAttempts: failedAttempts,
+                    isLocked: shouldLock,
+                    lastLoginAttempt: new Date(),
+                  }
+                : acc
+            ),
+          }));
+          return false;
+        }
       },
 
       logout: () => {
         set({ currentUser: null });
       },
 
-      deposit: (amount: number, description: string) => {
+      deposit: (amount: number, description: string, category = 'deposit') => {
         const { currentUser } = get();
         if (!currentUser) return;
 
@@ -88,6 +142,7 @@ export const useBankingStore = create<BankingState>()(
           amount,
           description,
           timestamp: new Date(),
+          category,
         };
 
         set((state) => ({
@@ -108,7 +163,7 @@ export const useBankingStore = create<BankingState>()(
         }));
       },
 
-      withdraw: (amount: number, description: string) => {
+      withdraw: (amount: number, description: string, category = 'withdrawal') => {
         const { currentUser } = get();
         if (!currentUser || currentUser.balance < amount) return false;
 
@@ -118,6 +173,7 @@ export const useBankingStore = create<BankingState>()(
           amount,
           description,
           timestamp: new Date(),
+          category,
         };
 
         set((state) => ({
@@ -140,7 +196,7 @@ export const useBankingStore = create<BankingState>()(
         return true;
       },
 
-      transfer: (toAccountId: string, amount: number, description: string) => {
+      transfer: (toAccountId: string, amount: number, description: string, category = 'transfer') => {
         const { currentUser, accounts } = get();
         if (!currentUser || currentUser.balance < amount) return false;
 
@@ -154,6 +210,7 @@ export const useBankingStore = create<BankingState>()(
           description: `Transfer to ${toAccount.ownerName} (${toAccountId})`,
           timestamp: new Date(),
           toAccount: toAccountId,
+          category,
         };
 
         const transferInTransaction: Transaction = {
@@ -163,6 +220,7 @@ export const useBankingStore = create<BankingState>()(
           description: `Transfer from ${currentUser.ownerName} (${currentUser.id})`,
           timestamp: new Date(),
           fromAccount: currentUser.id,
+          category,
         };
 
         set((state) => ({
@@ -195,6 +253,33 @@ export const useBankingStore = create<BankingState>()(
 
       getAccount: (accountId: string) => {
         return get().accounts.find(acc => acc.id === accountId);
+      },
+
+      searchAccountsByName: (name: string) => {
+        const { accounts, currentUser } = get();
+        return accounts.filter(acc => 
+          acc.ownerName.toLowerCase().includes(name.toLowerCase()) && 
+          acc.id !== currentUser?.id
+        );
+      },
+
+      formatCurrency: (amount: number) => {
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(amount);
+      },
+
+      unlockAccount: (accountId: string) => {
+        set((state) => ({
+          accounts: state.accounts.map(acc =>
+            acc.id === accountId
+              ? { ...acc, isLocked: false, failedLoginAttempts: 0 }
+              : acc
+          ),
+        }));
       },
     }),
     {

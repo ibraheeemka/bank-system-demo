@@ -3,29 +3,93 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useBankingStore } from "@/stores/bankingStore";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, ArrowLeft, Copy } from "lucide-react";
+import { ArrowLeft, UserPlus, Eye, EyeOff, Mail, User, CreditCard, CheckCircle } from "lucide-react";
 
 interface CreateAccountFormProps {
   onBack: () => void;
 }
 
 export const CreateAccountForm = ({ onBack }: CreateAccountFormProps) => {
-  const [ownerName, setOwnerName] = useState("");
+  const [formData, setFormData] = useState({
+    ownerName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    accountType: "" as "checking" | "savings" | "",
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [newAccountId, setNewAccountId] = useState<string | null>(null);
+  const [passwordStrength, setPasswordStrength] = useState(0);
+  
   const createAccount = useBankingStore((state) => state.createAccount);
   const { toast } = useToast();
 
-  const handleCreateAccount = async (e: React.FormEvent) => {
+  const calculatePasswordStrength = (password: string) => {
+    let strength = 0;
+    if (password.length >= 8) strength += 25;
+    if (/[A-Z]/.test(password)) strength += 25;
+    if (/[a-z]/.test(password)) strength += 25;
+    if (/[0-9]/.test(password)) strength += 25;
+    return strength;
+  };
+
+  const handlePasswordChange = (password: string) => {
+    setFormData(prev => ({ ...prev, password }));
+    setPasswordStrength(calculatePasswordStrength(password));
+  };
+
+  const getPasswordStrengthColor = () => {
+    if (passwordStrength < 50) return "bg-red-500";
+    if (passwordStrength < 75) return "bg-yellow-500";
+    return "bg-green-500";
+  };
+
+  const getPasswordStrengthText = () => {
+    if (passwordStrength < 50) return "Weak";
+    if (passwordStrength < 75) return "Medium";
+    return "Strong";
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!ownerName.trim()) {
+    if (!formData.ownerName.trim() || !formData.email.trim() || !formData.password || !formData.accountType) {
       toast({
-        title: "Error",
-        description: "Please enter your full name",
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwordStrength < 50) {
+      toast({
+        title: "Weak Password",
+        description: "Please choose a stronger password",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
         variant: "destructive",
       });
       return;
@@ -34,117 +98,210 @@ export const CreateAccountForm = ({ onBack }: CreateAccountFormProps) => {
     setIsLoading(true);
     
     // Simulate account creation process
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise(resolve => setTimeout(resolve, 2000));
     
-    const accountId = createAccount(ownerName.trim());
-    setNewAccountId(accountId);
+    const accountId = createAccount(
+      formData.ownerName, 
+      formData.email, 
+      formData.password, 
+      formData.accountType as "checking" | "savings"
+    );
     
     toast({
-      title: "Account Created!",
-      description: `Welcome to ModernBank, ${ownerName}!`,
+      title: "Account Created Successfully! 🎉",
+      description: `Your account ID is: ${accountId}. Please save this for login.`,
     });
     
     setIsLoading(false);
+    onBack();
   };
-
-  const copyAccountId = () => {
-    if (newAccountId) {
-      navigator.clipboard.writeText(newAccountId);
-      toast({
-        title: "Copied!",
-        description: "Account ID copied to clipboard",
-      });
-    }
-  };
-
-  if (newAccountId) {
-    return (
-      <Card className="animate-fade-in">
-        <CardHeader className="text-center">
-          <CardTitle className="text-green-600">Account Created Successfully!</CardTitle>
-          <CardDescription>
-            Your account has been created. Please save your Account ID safely.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="bg-gray-50 p-4 rounded-lg text-center">
-            <Label className="text-sm font-medium text-gray-600">Your Account ID</Label>
-            <div className="flex items-center justify-center gap-2 mt-2">
-              <code className="text-lg font-mono font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded">
-                {newAccountId}
-              </code>
-              <Button size="sm" variant="outline" onClick={copyAccountId}>
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          
-          <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded border border-amber-200">
-            <strong>Important:</strong> Please save this Account ID. You'll need it to log in to your account.
-          </div>
-          
-          <Button onClick={onBack} className="w-full">
-            Continue to Login
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
-    <Card className="animate-fade-in">
-      <CardHeader>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onBack}
-          className="w-fit mb-2"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Login
-        </Button>
-        <CardTitle className="flex items-center gap-2">
-          <UserPlus className="h-5 w-5" />
-          Create New Account
-        </CardTitle>
-        <CardDescription>
-          Join ModernBank today and start your digital banking journey
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleCreateAccount} className="space-y-4">
-          <div>
-            <Label htmlFor="ownerName">Full Name</Label>
-            <Input
-              id="ownerName"
-              type="text"
-              placeholder="Enter your full name"
-              value={ownerName}
-              onChange={(e) => setOwnerName(e.target.value)}
-              className="mt-1"
-              disabled={isLoading}
-            />
+    <div className="relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-green-400 via-blue-500 to-purple-600 animate-pulse opacity-20"></div>
+      
+      <Card className="relative backdrop-blur-sm bg-white/90 border-0 shadow-2xl animate-fade-in">
+        <CardHeader className="text-center space-y-4">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center animate-scale-in">
+            <UserPlus className="h-8 w-8 text-white" />
           </div>
-          
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={isLoading || !ownerName.trim()}
-          >
-            {isLoading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Creating Account...
-              </>
-            ) : (
-              <>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Create Account
-              </>
-            )}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+          <CardTitle className="text-2xl bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+            Create Your Account
+          </CardTitle>
+          <CardDescription className="text-base">
+            Join ModernBank and start your digital banking journey
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="ownerName" className="text-sm font-medium flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Full Name *
+              </Label>
+              <Input
+                id="ownerName"
+                type="text"
+                placeholder="Enter your full name"
+                value={formData.ownerName}
+                onChange={(e) => setFormData(prev => ({ ...prev, ownerName: e.target.value }))}
+                className="h-12 transition-all duration-200 focus:ring-2 focus:ring-green-500"
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-medium flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                Email Address *
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                className="h-12 transition-all duration-200 focus:ring-2 focus:ring-green-500"
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="accountType" className="text-sm font-medium flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                Account Type *
+              </Label>
+              <Select 
+                value={formData.accountType} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, accountType: value as "checking" | "savings" }))}
+              >
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder="Choose account type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="checking">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4" />
+                      <div>
+                        <div className="font-medium">Checking Account</div>
+                        <div className="text-sm text-gray-500">For everyday transactions</div>
+                      </div>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="savings">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4" />
+                      <div>
+                        <div className="font-medium">Savings Account</div>
+                        <div className="text-sm text-gray-500">$100 welcome bonus!</div>
+                      </div>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-medium">
+                Password *
+              </Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Create a strong password"
+                  value={formData.password}
+                  onChange={(e) => handlePasswordChange(e.target.value)}
+                  className="h-12 pr-12 transition-all duration-200 focus:ring-2 focus:ring-green-500"
+                  disabled={isLoading}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+              {formData.password && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Password strength:</span>
+                    <span className={`font-medium ${passwordStrength >= 75 ? 'text-green-600' : passwordStrength >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                      {getPasswordStrengthText()}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full transition-all duration-300 ${getPasswordStrengthColor()}`}
+                      style={{ width: `${passwordStrength}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword" className="text-sm font-medium">
+                Confirm Password *
+              </Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm your password"
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                  className="h-12 pr-12 transition-all duration-200 focus:ring-2 focus:ring-green-500"
+                  disabled={isLoading}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 p-0"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onBack}
+                className="flex-1 h-12"
+                disabled={isLoading}
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+              <Button 
+                type="submit" 
+                className="flex-1 h-12 bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 transition-all duration-300"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                    Creating Account...
+                  </>
+                ) : (
+                  <>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Create Account
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
