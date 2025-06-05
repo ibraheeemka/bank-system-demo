@@ -50,10 +50,10 @@ const Index = () => {
   }
 
   return showCreateAccount ? (
-    <CreateAccountForm onBack={() => setShowCreateAccount(false)} />
-  ) : (
-    <LoginForm onCreateAccount={() => setShowCreateAccount(true)} />
-  );
+            <CreateAccountForm onBack={() => setShowCreateAccount(false)} />
+          ) : (
+            <LoginForm onCreateAccount={() => setShowCreateAccount(true)} />
+    );
 };
 
 export default Index;
