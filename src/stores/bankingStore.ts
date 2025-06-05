@@ -3,13 +3,13 @@ import { persist } from 'zustand/middleware';
 
 export interface Transaction {
   id: string;
-  type: 'deposit' | 'withdraw' | 'transfer';
+  type: 'deposit' | 'withdrawal' | 'transfer';
   amount: number;
   description: string;
-  timestamp: Date;
-  fromAccount?: string;
-  toAccount?: string;
   category?: string;
+  date: string;
+  fromAccount?: string;  // For transfer transactions
+  toAccount?: string;    // For transfer transactions
 }
 
 export interface Account {
@@ -19,7 +19,7 @@ export interface Account {
   password: string; // Account password
   balance: number;
   transactions: Transaction[];
-  createdAt: Date;
+  createdAt: string;    // Add createdAt field
   accountType: 'checking' | 'savings';
   isLocked?: boolean;
   failedLoginAttempts?: number;
@@ -65,10 +65,15 @@ const generateTransactionId = () => {
   return Math.random().toString(36).substring(2, 15);
 };
 
+// API URL configuration
+const API_URL = process.env.NODE_ENV === 'production'
+  ? 'https://uni-bank-backend.onrender.com'  // Replace with your actual Render URL
+  : 'http://localhost:3001';
+
 // Real email sending function
 const sendEmailWithAccountId = async (email: string, accountId: string, password: string): Promise<boolean> => {
   try {
-    const response = await fetch('http://localhost:3001/api/send-account-id', {
+    const response = await fetch(`${API_URL}/api/send-account-id`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -84,10 +89,32 @@ const sendEmailWithAccountId = async (email: string, accountId: string, password
   }
 };
 
+// Initial demo account
+const demoAccount: Account = {
+  id: 'DEMO123456',
+  ownerName: 'Demo User',
+  email: 'demo@example.com',
+  password: 'demo123',
+  balance: 1000,
+  accountType: 'checking',
+  transactions: [
+    {
+      id: 'demo1',
+      type: 'deposit',
+      amount: 1000,
+      description: 'Initial deposit',
+      date: new Date().toISOString(),
+      category: 'deposit'
+    }
+  ],
+  isLocked: false,
+  createdAt: new Date().toISOString()
+};
+
 export const useBankingStore = create<BankingState>()(
   persist(
     (set, get) => ({
-      accounts: [],
+      accounts: [demoAccount], // Initialize with demo account
       currentUser: null,
       isLoading: false,
       appPassword: null,
@@ -119,7 +146,7 @@ export const useBankingStore = create<BankingState>()(
           password,
           balance: accountType === 'savings' ? 100 : 0,
           transactions: [],
-          createdAt: new Date(),
+          createdAt: new Date().toISOString(),
           accountType,
           failedLoginAttempts: 0,
         };
@@ -191,7 +218,7 @@ export const useBankingStore = create<BankingState>()(
           type: 'deposit',
           amount,
           description,
-          timestamp: new Date(),
+          date: new Date().toISOString(),
           category,
         };
 
@@ -219,10 +246,10 @@ export const useBankingStore = create<BankingState>()(
 
         const transaction: Transaction = {
           id: generateTransactionId(),
-          type: 'withdraw',
+          type: 'withdrawal',
           amount: -amount,
           description,
-          timestamp: new Date(),
+          date: new Date().toISOString(),
           category,
         };
 
@@ -258,7 +285,7 @@ export const useBankingStore = create<BankingState>()(
           type: 'transfer',
           amount: -amount,
           description: `Transfer to ${toAccount.ownerName} (${toAccountId})`,
-          timestamp: new Date(),
+          date: new Date().toISOString(),
           toAccount: toAccountId,
           category,
         };
@@ -268,7 +295,7 @@ export const useBankingStore = create<BankingState>()(
           type: 'transfer',
           amount: amount,
           description: `Transfer from ${currentUser.ownerName} (${currentUser.id})`,
-          timestamp: new Date(),
+          date: new Date().toISOString(),
           fromAccount: currentUser.id,
           category,
         };
@@ -362,7 +389,7 @@ export const useBankingStore = create<BankingState>()(
               createdAt: new Date(acc.createdAt),
               transactions: acc.transactions.map((t: any) => ({
                 ...t,
-                timestamp: new Date(t.timestamp)
+                date: new Date(t.date)
               }))
             }));
           }

@@ -8,9 +8,27 @@ dotenv.config();
 
 const app = express();
 
+// CORS configuration
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://[your-github-username].github.io'] // Replace this with your actual GitHub Pages URL
+    : ['http://localhost:8080', 'http://localhost:5173'],
+  methods: ['GET', 'POST'],
+  credentials: true,
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
+
+// Health check endpoint
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'UNI Bank API is running' });
+});
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
 
 // Create email transporter
 const transporter = nodemailer.createTransport({
@@ -61,6 +79,6 @@ app.post('/api/send-account-id', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 }); 
