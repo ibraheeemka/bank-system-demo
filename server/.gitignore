@@ -25,4 +25,7 @@ pids
 
 # System Files
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# Exclude dist directory
+dist/ 
