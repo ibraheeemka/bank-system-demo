@@ -25,6 +25,7 @@ export const CreateAccountForm = ({ onBack }: CreateAccountFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [accountCreated, setAccountCreated] = useState(false);
+  const [credentials, setCredentials] = useState<{ accountId: string; password: string } | null>(null);
   
   const createAccount = useBankingStore((state) => state.createAccount);
   const { toast } = useToast();
@@ -99,13 +100,14 @@ export const CreateAccountForm = ({ onBack }: CreateAccountFormProps) => {
     
     try {
       // Create account and send email
-      const accountId = await createAccount(
+      const result = await createAccount(
         formData.ownerName, 
         formData.email, 
         formData.password, 
         formData.accountType as "checking" | "savings"
       );
       
+      setCredentials(result);
       setAccountCreated(true);
       
       toast({
@@ -124,7 +126,7 @@ export const CreateAccountForm = ({ onBack }: CreateAccountFormProps) => {
     setIsLoading(false);
   };
 
-  if (accountCreated) {
+  if (accountCreated && credentials) {
     return (
       <div className="relative overflow-hidden">
         <Card className="relative backdrop-blur-sm bg-white/90 border-0 shadow-2xl animate-fade-in">
@@ -133,21 +135,27 @@ export const CreateAccountForm = ({ onBack }: CreateAccountFormProps) => {
               <CheckCircle className="h-8 w-8 text-white" />
             </div>
             <CardTitle className="text-2xl bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-              Account Created! 🎉
+              Your UNI Bank account has been successfully created
             </CardTitle>
             <CardDescription className="text-base">
-              Your ModernBank account has been successfully created
+              Your UNI Bank account has been successfully created
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-6">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <Mail className="h-12 w-12 text-blue-600 mx-auto mb-3" />
-              <h3 className="font-semibold text-blue-900 mb-2">Check Your Email</h3>
-              <p className="text-blue-700 text-sm">
-                We've sent your Account ID to <strong>{formData.email}</strong>
-              </p>
-              <p className="text-blue-600 text-xs mt-2">
-                You'll need this ID to sign in to your account
+              <h3 className="font-semibold text-blue-900 mb-4">Your Account Credentials</h3>
+              <div className="space-y-4">
+                <div className="bg-white p-3 rounded-md">
+                  <p className="text-sm text-blue-600 mb-1">Account ID</p>
+                  <p className="text-lg font-mono font-bold text-blue-900">{credentials.accountId}</p>
+                </div>
+                <div className="bg-white p-3 rounded-md">
+                  <p className="text-sm text-blue-600 mb-1">Password</p>
+                  <p className="text-lg font-mono font-bold text-blue-900">{credentials.password}</p>
+                </div>
+              </div>
+              <p className="text-blue-600 text-sm mt-4">
+                ⚠️ Please save these credentials - you'll need them to sign in!
               </p>
             </div>
             
@@ -187,10 +195,10 @@ export const CreateAccountForm = ({ onBack }: CreateAccountFormProps) => {
             <UserPlus className="h-8 w-8 text-white" />
           </div>
           <CardTitle className="text-2xl bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
-            Create Your Account
+            Join UNI Bank and start your digital banking journey
           </CardTitle>
           <CardDescription className="text-base">
-            Join ModernBank and start your digital banking journey
+            Join UNI Bank and start your digital banking journey
           </CardDescription>
         </CardHeader>
         <CardContent>

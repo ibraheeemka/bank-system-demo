@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +8,11 @@ import { useBankingStore } from "@/stores/bankingStore";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowUpDown, Search, User, DollarSign, Tag, CheckCircle, AlertCircle } from "lucide-react";
 
-export const TransferForm = () => {
+interface TransferFormProps {
+  onClose: () => void;
+}
+
+export const TransferForm = ({ onClose }: TransferFormProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRecipient, setSelectedRecipient] = useState<{ id: string; name: string } | null>(null);
   const [amount, setAmount] = useState("");
@@ -79,11 +82,12 @@ export const TransferForm = () => {
         description: `${formatCurrency(transferAmount)} sent to ${selectedRecipient.name}`,
       });
       
-      // Reset form
+      // Reset form and close
       setSelectedRecipient(null);
       setAmount("");
       setDescription("");
       setCategory("");
+      onClose();
     }
     
     setIsLoading(false);
@@ -99,7 +103,7 @@ export const TransferForm = () => {
             </div>
             Transfer Money
           </CardTitle>
-          <CardDescription>Send money to other ModernBank users instantly</CardDescription>
+          <CardDescription>Send money to other UNI Bank users instantly</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleTransfer} className="space-y-6">

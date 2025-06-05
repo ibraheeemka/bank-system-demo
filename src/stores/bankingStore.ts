@@ -24,6 +24,7 @@ export interface Account {
   isLocked?: boolean;
   failedLoginAttempts?: number;
   lastLoginAttempt?: Date;
+  hasAppPassword?: boolean;
 }
 
 interface BankingState {
@@ -35,7 +36,7 @@ interface BankingState {
   setAppPassword: (password: string) => void;
   verifyAppPassword: (password: string) => boolean;
   lockApp: () => void;
-  createAccount: (ownerName: string, email: string, password: string, accountType: 'checking' | 'savings') => Promise<string>;
+  createAccount: (ownerName: string, email: string, password: string, accountType: 'checking' | 'savings') => Promise<{ accountId: string; password: string }>;
   login: (accountId: string, password: string) => boolean;
   logout: () => void;
   deposit: (amount: number, description: string, category?: string) => void;
@@ -45,26 +46,22 @@ interface BankingState {
   searchAccountsByName: (name: string) => Account[];
   formatCurrency: (amount: number) => string;
   unlockAccount: (accountId: string) => void;
-  sendAccountIdEmail: (email: string, accountId: string) => Promise<boolean>;
 }
 
-const generateAccountId = (): string => {
-  return 'ACC' + Math.random().toString(36).substr(2, 9).toUpperCase();
+// Helper function to generate account ID
+const generateAccountId = (ownerName: string) => {
+  const initials = ownerName
+    .split(' ')
+    .map(name => name[0])
+    .join('')
+    .toUpperCase();
+  const randomNum = Math.floor(100000 + Math.random() * 900000);
+  return `${initials}-${randomNum}`;
 };
 
-const generateTransactionId = (): string => {
-  return 'TXN' + Math.random().toString(36).substr(2, 12);
-};
-
-// Simulate email sending (in real app, this would call a backend API)
-const simulateEmailSending = async (email: string, accountId: string): Promise<boolean> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      console.log(`📧 Email sent to ${email}: Your ModernBank Account ID is ${accountId}`);
-      // In a real app, you would integrate with an email service like SendGrid, Mailgun, etc.
-      resolve(true);
-    }, 1000);
-  });
+// Helper function to generate transaction ID
+const generateTransactionId = () => {
+  return Math.random().toString(36).substring(2, 15);
 };
 
 export const useBankingStore = create<BankingState>()(
@@ -93,18 +90,8 @@ export const useBankingStore = create<BankingState>()(
         set({ isAppUnlocked: false, currentUser: null });
       },
 
-      sendAccountIdEmail: async (email: string, accountId: string) => {
-        try {
-          const success = await simulateEmailSending(email, accountId);
-          return success;
-        } catch (error) {
-          console.error('Failed to send email:', error);
-          return false;
-        }
-      },
-
       createAccount: async (ownerName: string, email: string, password: string, accountType: 'checking' | 'savings') => {
-        const accountId = generateAccountId();
+        const accountId = generateAccountId(ownerName);
         const newAccount: Account = {
           id: accountId,
           ownerName,
@@ -121,10 +108,8 @@ export const useBankingStore = create<BankingState>()(
           accounts: [...state.accounts, newAccount],
         }));
 
-        // Send account ID to email
-        await get().sendAccountIdEmail(email, accountId);
-
-        return accountId;
+        // Return both accountId and password for display
+        return { accountId, password };
       },
 
       login: (accountId: string, password: string) => {
@@ -329,6 +314,16 @@ export const useBankingStore = create<BankingState>()(
     }),
     {
       name: 'banking-storage',
+      partialize: (state) => ({
+        accounts: state.accounts,
+        appPassword: state.appPassword,
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.isAppUnlocked = false;
+          state.currentUser = null;
+        }
+      },
     }
   )
 );
