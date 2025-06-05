@@ -24,13 +24,13 @@ export const BankingDashboard = () => {
     .filter(t => t.type === 'deposit')
     .reduce((sum, t) => sum + t.amount, 0) || 0;
 
-  const totalWithdrawals = currentUser?.transactions
+  const totalWithdrawals = Math.abs(currentUser?.transactions
     .filter(t => t.type === 'withdraw')
-    .reduce((sum, t) => sum + t.amount, 0) || 0;
+    .reduce((sum, t) => sum + t.amount, 0) || 0);
 
-  const totalTransfersSent = currentUser?.transactions
+  const totalTransfersSent = Math.abs(currentUser?.transactions
     .filter(t => t.type === 'transfer' && t.fromAccount === currentUser.id)
-    .reduce((sum, t) => sum + t.amount, 0) || 0;
+    .reduce((sum, t) => sum + t.amount, 0) || 0);
 
   const totalTransfersReceived = currentUser?.transactions
     .filter(t => t.type === 'transfer' && t.toAccount === currentUser.id)
@@ -126,14 +126,14 @@ export const BankingDashboard = () => {
               className="w-full"
               onClick={() => setShowTransferForm(true)}
             >
-              Transfer
+                  Transfer
             </Button>
             <Button 
               variant="outline"
               className="w-full"
               onClick={() => setShowHistory(true)}
             >
-              History
+                  History
             </Button>
           </div>
 
@@ -156,12 +156,12 @@ export const BankingDashboard = () => {
                         </p>
                       </div>
                       <div className={`font-semibold ${
-                        transaction.type === 'deposit' ? 'text-purple-600' :
-                        transaction.type === 'withdraw' ? 'text-red-600' :
-                        transaction.fromAccount === currentUser.id ? 'text-blue-600' : 'text-emerald-600'
+                        transaction.type === 'deposit' || 
+                        (transaction.type === 'transfer' && transaction.toAccount === currentUser.id)
+                          ? 'text-green-600'  // Deposits and received transfers in green
+                          : 'text-red-600'    // Withdrawals and sent transfers in red
                       }`}>
-                        {transaction.type === 'transfer' && transaction.fromAccount === currentUser.id ? '-' : '+'}
-                        ${formatCurrency(transaction.amount)}
+                        {transaction.amount >= 0 ? '+' : ''}{formatCurrency(transaction.amount)}
                       </div>
                     </div>
                   ))}
@@ -172,9 +172,9 @@ export const BankingDashboard = () => {
 
           {/* Account Information */}
           <Card className="bg-white shadow-lg">
-            <CardHeader>
+              <CardHeader>
               <CardTitle>Account Information</CardTitle>
-            </CardHeader>
+              </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div>
@@ -216,11 +216,11 @@ export const BankingDashboard = () => {
                     {currentUser.hasAppPassword ? 'Change App Password' : 'Set Up App Password'}
                   </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
 
       {/* Forms */}
       {showDepositForm && (

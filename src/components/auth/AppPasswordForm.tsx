@@ -18,28 +18,28 @@ export const AppPasswordForm = () => {
     e.preventDefault();
 
     if (password.length < 4) {
-      toast({
-        title: "Password Too Short",
+        toast({
+          title: "Password Too Short",
         description: "Please enter at least 4 characters",
-        variant: "destructive",
-      });
-      return;
-    }
+          variant: "destructive",
+        });
+        return;
+      }
 
-    if (password !== confirmPassword) {
+      if (password !== confirmPassword) {
+        toast({
+          title: "Passwords Don't Match",
+          description: "Please make sure both passwords match",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setAppPassword(password);
       toast({
-        title: "Passwords Don't Match",
-        description: "Please make sure both passwords match",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setAppPassword(password);
-    toast({
-      title: "App Password Set! 🔐",
+        title: "App Password Set! 🔐",
       description: "Your UNI Bank app is now secure",
-    });
+      });
     navigate('/');
   };
 
@@ -57,7 +57,7 @@ export const AppPasswordForm = () => {
             First, let's secure your banking app
           </p>
         </div>
-
+        
         <Card>
           <CardHeader>
             <CardTitle>Set Up App Password</CardTitle>
@@ -69,28 +69,28 @@ export const AppPasswordForm = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="password">Create Password</Label>
-                <Input
-                  id="password"
+                  <Input
+                    id="password"
                   type="password"
                   placeholder="Enter password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={4}
-                />
+                  />
               </div>
-              <div className="space-y-2">
+                <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
+                    <Input
+                      id="confirmPassword"
                   type="password"
                   placeholder="Confirm password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                   minLength={4}
-                />
-              </div>
+                    />
+                  </div>
               <Button type="submit" className="w-full">
                 Secure My App
               </Button>

@@ -141,7 +141,7 @@ export const TransferForm = ({ onClose }: TransferFormProps) => {
                   <Input
                     id="recipient"
                     type="text"
-                    placeholder="Search by name (min 2 characters)"
+                    placeholder="Search by name or account ID (min 2 characters)"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 h-12"

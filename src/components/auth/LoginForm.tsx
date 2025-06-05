@@ -73,20 +73,20 @@ export const LoginForm = ({ onCreateAccount }: LoginFormProps) => {
           <CardHeader>
             <CardTitle>Sign In</CardTitle>
             <CardDescription>Enter your account credentials</CardDescription>
-          </CardHeader>
-          <CardContent>
+        </CardHeader>
+        <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
+            <div className="space-y-2">
                 <Label htmlFor="accountId">Account ID</Label>
-                <Input
-                  id="accountId"
+              <Input
+                id="accountId"
                   placeholder="Enter your Account ID"
-                  value={accountId}
-                  onChange={(e) => setAccountId(e.target.value)}
+                value={accountId}
+                onChange={(e) => setAccountId(e.target.value)}
                   required
-                />
-              </div>
-              <div className="space-y-2">
+              />
+            </div>
+            <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
@@ -98,8 +98,8 @@ export const LoginForm = ({ onCreateAccount }: LoginFormProps) => {
                 />
               </div>
               <Button type="submit" className="w-full">
-                Sign In
-              </Button>
+                  Sign In
+            </Button>
             </form>
           </CardContent>
           <CardFooter>
@@ -109,16 +109,16 @@ export const LoginForm = ({ onCreateAccount }: LoginFormProps) => {
                 <span className="flex-shrink mx-4 text-gray-600">Don't have an account?</span>
                 <div className="flex-grow border-t border-gray-200"></div>
               </div>
-              <Button
-                variant="outline"
+            <Button 
+              variant="outline" 
                 className="w-full"
-                onClick={onCreateAccount}
-              >
+              onClick={onCreateAccount}
+            >
                 Create Account
-              </Button>
+            </Button>
             </div>
           </CardFooter>
-        </Card>
+      </Card>
       </div>
     </div>
   );

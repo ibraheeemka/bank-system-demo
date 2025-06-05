@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { BankingDashboard } from "@/components/banking/BankingDashboard";
 import { CreateAccountForm } from "@/components/auth/CreateAccountForm";
-import { AppPasswordForm } from "@/components/auth/AppPasswordForm";
+import { AppPasswordVerification } from "@/components/auth/AppPasswordVerification";
 import { useBankingStore } from "@/stores/bankingStore";
 import { useNavigate } from "react-router-dom";
 
@@ -21,9 +21,9 @@ const Index = () => {
     setIsLoadingState(false);
   }, [appPassword, navigate]);
 
-  // Show app password form if app is not unlocked
-  if (!isAppUnlocked) {
-    return <AppPasswordForm />;
+  // Show app password verification form if app is not unlocked but has a password set
+  if (!isAppUnlocked && appPassword) {
+    return <AppPasswordVerification />;
   }
 
   if (isLoadingState) {
@@ -45,31 +45,15 @@ const Index = () => {
     );
   }
 
-  if (!currentUser) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        {isLoadingState ? (
-          <div className="min-h-screen flex items-center justify-center">
-            <div className="text-center relative z-10">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-6"></div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Loading UNI Bank</h2>
-              <p className="text-gray-600">Preparing your banking experience...</p>
-            </div>
-          </div>
-        ) : (
-          <>
-            {showCreateAccount ? (
-              <CreateAccountForm onBack={() => setShowCreateAccount(false)} />
-            ) : (
-              <LoginForm onCreateAccount={() => setShowCreateAccount(true)} />
-            )}
-          </>
-        )}
-      </div>
-    );
+  if (currentUser) {
+    return <BankingDashboard />;
   }
 
-  return <BankingDashboard />;
+  return showCreateAccount ? (
+    <CreateAccountForm onBack={() => setShowCreateAccount(false)} />
+  ) : (
+    <LoginForm onCreateAccount={() => setShowCreateAccount(true)} />
+  );
 };
 
 export default Index;

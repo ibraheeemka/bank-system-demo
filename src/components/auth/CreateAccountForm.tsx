@@ -112,7 +112,7 @@ export const CreateAccountForm = ({ onBack }: CreateAccountFormProps) => {
       
       toast({
         title: "Account Created Successfully! 🎉",
-        description: "Your account credentials are displayed below. Please save them!",
+        description: `Check your email for your Account ID. We've sent it to ${formData.email}`,
       });
       
     } catch (error) {

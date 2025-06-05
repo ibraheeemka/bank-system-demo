@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useBankingStore } from "@/stores/bankingStore";
 import { TrendingUp, TrendingDown, ArrowUpDown, Wallet, PiggyBank, CreditCard } from "lucide-react";
@@ -222,10 +221,13 @@ export const AccountOverview = () => {
                   <div className="text-right">
                     <div className="space-y-1">
                       <p className={`font-bold ${
-                        transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
+                        transaction.type === 'deposit' || 
+                        (transaction.type === 'transfer' && transaction.fromAccount !== currentUser.id)
+                          ? 'text-green-600'  // Deposits and received transfers in green
+                          : 'text-red-600'    // Withdrawals and sent transfers in red
                       } ${getBalanceTextSize(Math.abs(transaction.amount))}`}>
-                        {transaction.amount > 0 ? '+' : ''}{Math.abs(transaction.amount) >= 1000000 ? 
-                          formatCompactCurrency(transaction.amount) : 
+                        {transaction.amount > 0 ? '+' : '-'}${Math.abs(transaction.amount) >= 1000000 ? 
+                          formatCompactCurrency(Math.abs(transaction.amount)) : 
                           formatCurrency(Math.abs(transaction.amount))
                         }
                       </p>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -92,9 +91,12 @@ export const TransactionHistory = () => {
                 </div>
                 <div className="text-right">
                   <p className={`font-semibold text-lg ${
-                    transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
+                    transaction.type === 'deposit' || 
+                    (transaction.type === 'transfer' && transaction.fromAccount !== currentUser.id)
+                      ? 'text-green-600'  // Deposits and received transfers in green
+                      : 'text-red-600'    // Withdrawals and sent transfers in red
                   }`}>
-                    {transaction.amount > 0 ? '+' : ''}${Math.abs(transaction.amount).toFixed(2)}
+                    {transaction.amount > 0 ? '+' : '-'}${Math.abs(transaction.amount).toFixed(2)}
                   </p>
                   <p className="text-xs text-gray-500">#{transaction.id}</p>
                 </div>

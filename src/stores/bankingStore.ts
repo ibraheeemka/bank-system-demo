@@ -46,6 +46,7 @@ interface BankingState {
   searchAccountsByName: (name: string) => Account[];
   formatCurrency: (amount: number) => string;
   unlockAccount: (accountId: string) => void;
+  sendAccountIdEmail: (email: string, accountId: string, password: string) => Promise<boolean>;
 }
 
 // Helper function to generate account ID
@@ -62,6 +63,25 @@ const generateAccountId = (ownerName: string) => {
 // Helper function to generate transaction ID
 const generateTransactionId = () => {
   return Math.random().toString(36).substring(2, 15);
+};
+
+// Real email sending function
+const sendEmailWithAccountId = async (email: string, accountId: string, password: string): Promise<boolean> => {
+  try {
+    const response = await fetch('http://localhost:3001/api/send-account-id', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, accountId, password }),
+    });
+
+    const data = await response.json();
+    return data.success;
+  } catch (error) {
+    console.error('Failed to send email:', error);
+    return false;
+  }
 };
 
 export const useBankingStore = create<BankingState>()(
@@ -200,7 +220,7 @@ export const useBankingStore = create<BankingState>()(
         const transaction: Transaction = {
           id: generateTransactionId(),
           type: 'withdraw',
-          amount,
+          amount: -amount,
           description,
           timestamp: new Date(),
           category,
@@ -288,7 +308,8 @@ export const useBankingStore = create<BankingState>()(
       searchAccountsByName: (name: string) => {
         const { accounts, currentUser } = get();
         return accounts.filter(acc => 
-          acc.ownerName.toLowerCase().includes(name.toLowerCase()) && 
+          (acc.ownerName.toLowerCase().includes(name.toLowerCase()) ||
+           acc.id.toLowerCase().includes(name.toLowerCase())) && 
           acc.id !== currentUser?.id
         );
       },
@@ -311,19 +332,45 @@ export const useBankingStore = create<BankingState>()(
           ),
         }));
       },
+
+      sendAccountIdEmail: async (email: string, accountId: string, password: string) => {
+        try {
+          const success = await sendEmailWithAccountId(email, accountId, password);
+          return success;
+        } catch (error) {
+          console.error('Failed to send email:', error);
+          return false;
+        }
+      },
     }),
     {
       name: 'banking-storage',
       partialize: (state) => ({
         accounts: state.accounts,
         appPassword: state.appPassword,
+        isAppUnlocked: false, // Always start locked for security
       }),
-      onRehydrateStorage: () => (state) => {
-        if (state) {
-          state.isAppUnlocked = false;
-          state.currentUser = null;
-        }
-      },
+      storage: {
+        getItem: (name) => {
+          const str = localStorage.getItem(name);
+          if (!str) return null;
+          const data = JSON.parse(str);
+          // Convert string dates back to Date objects
+          if (data.state && data.state.accounts) {
+            data.state.accounts = data.state.accounts.map((acc: any) => ({
+              ...acc,
+              createdAt: new Date(acc.createdAt),
+              transactions: acc.transactions.map((t: any) => ({
+                ...t,
+                timestamp: new Date(t.timestamp)
+              }))
+            }));
+          }
+          return data;
+        },
+        setItem: (name, value) => localStorage.setItem(name, JSON.stringify(value)),
+        removeItem: (name) => localStorage.removeItem(name)
+      }
     }
   )
 );
